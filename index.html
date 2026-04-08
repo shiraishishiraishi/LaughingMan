@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Laughing Man</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100dvh;
+    font-family: 'Courier New', monospace;
+    color: #00ffcc;
+    overflow: hidden;
+  }
+
+  #container {
+    position: relative;
+    width: 100%;
+    max-width: 480px;
+  }
+
+  video { display: none; }
+
+  canvas {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 8px;
+  }
+
+  #ui {
+    position: absolute;
+    bottom: 12px;
+    left: 0; right: 0;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    z-index: 10;
+  }
+
+  .btn {
+    background: rgba(0,0,0,0.7);
+    color: #00ffcc;
+    border: 1px solid #00ffcc44;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    transition: background 0.2s;
+  }
+  .btn:active { background: rgba(0,255,204,0.15); }
+
+  #status {
+    text-align: center;
+    font-size: 12px;
+    color: #00ffcc88;
+    padding: 8px;
+    letter-spacing: 0.1em;
+  }
+
+  #start-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    padding: 40px 20px;
+  }
+
+  .title {
+    font-size: 22px;
+    letter-spacing: 0.2em;
+    color: #00ffcc;
+    text-shadow: 0 0 20px #00ffcc66;
+  }
+
+  .subtitle {
+    font-size: 12px;
+    color: #00ffcc55;
+    letter-spacing: 0.15em;
+  }
+
+  .start-btn {
+    background: transparent;
+    color: #00ffcc;
+    border: 1px solid #00ffcc;
+    border-radius: 8px;
+    padding: 14px 32px;
+    font-family: 'Courier New', monospace;
+    font-size: 15px;
+    cursor: pointer;
+    letter-spacing: 0.1em;
+    transition: all 0.2s;
+  }
+  .start-btn:active { background: rgba(0,255,204,0.1); }
+</style>
+</head>
+<body>
+
+<div id="start-screen">
+  <div class="title">LAUGHING MAN</div>
+  <div class="subtitle">SECTION 9 // FACE OVERLAY SYSTEM</div>
+  <button class="start-btn" onclick="startCamera()">カメラを起動</button>
+  <div id="status">カメラの許可が必要です</div>
+</div>
+
+<div id="container" style="display:none">
+  <video id="video" autoplay playsinline muted></video>
+  <canvas id="canvas"></canvas>
+  <div id="ui">
+    <button class="btn" onclick="toggleOverlay()">オーバーレイ ON/OFF</button>
+    <button class="btn" onclick="switchCamera()">カメラ切替</button>
+  </div>
+</div>
+
+<script type="module">
+import { FaceDetector, FilesetResolver } from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs';
+
+const video = document.getElementById('video');
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const status = document.getElementById('status');
+
+let faceDetector = null;
+let overlayEnabled = true;
+let angle = 0;
+let currentFacingMode = 'user';
+let stream = null;
+let animFrameId = null;
+
+// ── Laughing Man ロゴをCanvasで描画 ──
+function drawLaughingMan(cx, cy, r) {
+  ctx.save();
+  ctx.translate(cx, cy);
+
+  // 外側の円（青緑）
+  ctx.beginPath();
+  ctx.arc(0, 0, r, 0, Math.PI * 2);
+  ctx.fillStyle = '#00b894';
+  ctx.fill();
+
+  // スマイル顔（白）
+  const fr = r * 0.52;
+  ctx.beginPath();
+  ctx.arc(0, 0, fr, 0, Math.PI * 2);
+  ctx.fillStyle = '#fff';
+  ctx.fill();
+
+  // 目（左右）
+  const eyeY = -fr * 0.25;
+  const eyeR = fr * 0.12;
+  ctx.fillStyle = '#00b894';
+  ctx.beginPath();
+  ctx.arc(-fr * 0.28, eyeY, eyeR, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(fr * 0.28, eyeY, eyeR, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 笑顔の口
+  ctx.strokeStyle = '#00b894';
+  ctx.lineWidth = fr * 0.1;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.arc(0, fr * 0.05, fr * 0.35, 0.2, Math.PI - 0.2);
+  ctx.stroke();
+
+  // 回転するテキストリング
+  ctx.rotate(angle);
+  const text = 'I thought what I\'d do was, I\'d pretend I was one of those deaf-mutes ';
+  const chars = text.split('');
+  const ringR = r * 0.82;
+  const fontSize = Math.max(9, r * 0.11);
+  ctx.font = `bold ${fontSize}px 'Courier New', monospace`;
+  ctx.fillStyle = '#fff';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  chars.forEach((char, i) => {
+    const a = (i / chars.length) * Math.PI * 2 - Math.PI / 2;
+    ctx.save();
+    ctx.rotate(a);
+    ctx.translate(0, -ringR);
+    ctx.rotate(Math.PI / 2);
+    ctx.fillText(char, 0, 0);
+    ctx.restore();
+  });
+
+  ctx.restore();
+}
+
+// ── MediaPipe 初期化 ──
+async function initDetector() {
+  status.textContent = 'AI モデルを読み込み中…';
+  const vision = await FilesetResolver.forVisionTasks(
+    'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm'
+  );
+  faceDetector = await FaceDetector.createFromOptions(vision, {
+    baseOptions: {
+      modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite',
+      delegate: 'GPU'
+    },
+    runningMode: 'VIDEO',
+    minDetectionConfidence: 0.5,
+  });
+  status.textContent = '準備完了';
+}
+
+// ── カメラ起動 ──
+window.startCamera = async function() {
+  document.getElementById('start-screen').style.display = 'none';
+  document.getElementById('container').style.display = 'block';
+
+  await openCamera(currentFacingMode);
+  await initDetector();
+  requestAnimationFrame(loop);
+};
+
+async function openCamera(facingMode) {
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode, width: { ideal: 640 }, height: { ideal: 480 } },
+      audio: false
+    });
+    video.srcObject = stream;
+    await new Promise(r => video.onloadedmetadata = r);
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+  } catch(e) {
+    status.textContent = 'カメラの許可が必要です';
+  }
+}
+
+// ── メインループ ──
+let lastVideoTime = -1;
+
+async function loop() {
+  animFrameId = requestAnimationFrame(loop);
+
+  if (video.readyState < 2) return;
+
+  // 映像をcanvasに描画
+  ctx.save();
+  if (currentFacingMode === 'user') {
+    ctx.scale(-1, 1);
+    ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+  } else {
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  }
+  ctx.restore();
+
+  // 顔検出
+  if (faceDetector && video.currentTime !== lastVideoTime) {
+    lastVideoTime = video.currentTime;
+    try {
+      const result = faceDetector.detectForVideo(video, performance.now());
+      if (overlayEnabled && result.detections.length > 0) {
+        result.detections.forEach(det => {
+          const bb = det.boundingBox;
+          // フロントカメラは左右反転
+          let x = currentFacingMode === 'user'
+            ? canvas.width - bb.originX - bb.width
+            : bb.originX;
+          const y = bb.originY;
+          const w = bb.width;
+          const h = bb.height;
+          const cx = x + w / 2;
+          const cy = y + h / 2;
+          const r = Math.max(w, h) * 0.65;
+          drawLaughingMan(cx, cy, r);
+        });
+      }
+    } catch(e) {}
+  } else if (overlayEnabled && faceDetector && result?.detections?.length === 0) {
+    // 顔なし
+  }
+
+  angle += 0.008;
+}
+
+// ── ボタン ──
+window.toggleOverlay = function() {
+  overlayEnabled = !overlayEnabled;
+};
+
+window.switchCamera = async function() {
+  currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+  await openCamera(currentFacingMode);
+};
+</script>
+</body>
+</html>
