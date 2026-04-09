@@ -280,67 +280,57 @@ function drawGlitchEffect(cx, cy, r, progress) {
   const C = '#00e5cc';
 
   if (progress < 0.3) {
-    // フェーズ1: バラバラなノイズブロック
-    const blocks = Math.floor(20 * progress / 0.3);
+    // フェーズ1: バラバラなノイズブロック＋円のちらつき
+    const blocks = Math.floor(25 * progress / 0.3);
     for (let i = 0; i < blocks; i++) {
       const bx = (Math.random() - 0.5) * r * 2;
       const by = (Math.random() - 0.5) * r * 2;
-      const bw = Math.random() * r * 0.4 + r * 0.05;
-      const bh = Math.random() * r * 0.08 + r * 0.02;
-      ctx.fillStyle = `rgba(0,229,204,${Math.random() * 0.8})`;
+      const bw = Math.random() * r * 0.5 + r * 0.05;
+      const bh = Math.random() * r * 0.1 + r * 0.02;
+      ctx.fillStyle = `rgba(0,229,204,${Math.random() * 0.9})`;
       ctx.fillRect(bx, by, bw, bh);
     }
-    // 外周の円がちらつく
-    if (Math.random() > 0.4) {
+    if (Math.random() > 0.3) {
       ctx.beginPath();
-      ctx.arc(0, 0, r * (0.7 + Math.random() * 0.3), 0, Math.PI * 2);
-      ctx.strokeStyle = `rgba(0,229,204,${Math.random() * 0.6})`;
-      ctx.lineWidth = r * 0.03;
+      ctx.arc(0, 0, r * (0.6 + Math.random() * 0.4), 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(0,229,204,${Math.random() * 0.7})`;
+      ctx.lineWidth = r * 0.035;
       ctx.stroke();
     }
   } else if (progress < 0.65) {
-    // フェーズ2: ロゴの断片が見え始める＋ノイズ
+    // フェーズ2: ズレたロゴ断片＋水平ノイズライン
     const t = (progress - 0.3) / 0.35;
-    ctx.globalAlpha = t * 0.7;
-    ctx.restore();
-    ctx.save();
-    ctx.translate(cx, cy);
 
-    // ズレたロゴを複数枚重ねてグリッチ感
+    // ズレたロゴを2枚
     const offsets = [
-      { dx: (Math.random() - 0.5) * r * 0.15, dy: 0, a: 0.4 },
-      { dx: (Math.random() - 0.5) * r * 0.1,  dy: (Math.random()-0.5)*r*0.1, a: 0.3 },
+      { dx: (Math.random() - 0.5) * r * 0.18, dy: (Math.random()-0.5)*r*0.08, a: 0.35 * t },
+      { dx: (Math.random() - 0.5) * r * 0.12, dy: (Math.random()-0.5)*r*0.12, a: 0.25 * t },
     ];
     offsets.forEach(o => {
       ctx.save();
       ctx.translate(o.dx, o.dy);
-      ctx.globalAlpha = o.a * t;
-      drawLogoCore(r);
+      ctx.globalAlpha = o.a;
+      drawLaughingMan(0, 0, r);
       ctx.restore();
     });
 
     // 水平ノイズライン
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 8; i++) {
       const ly = (Math.random() - 0.5) * r * 2;
-      const lw = Math.random() * r * 1.5;
-      ctx.fillStyle = `rgba(0,229,204,${Math.random() * 0.5})`;
-      ctx.fillRect(-lw / 2, ly, lw, r * 0.03);
+      const lw = Math.random() * r * 1.8;
+      ctx.fillStyle = `rgba(0,229,204,${Math.random() * 0.6})`;
+      ctx.fillRect(-lw / 2, ly, lw, r * 0.035);
     }
   } else {
-    // フェーズ3: ほぼ完成、最後の揺れ
+    // フェーズ3: 揺れながら固まる
     const t = (progress - 0.65) / 0.35;
-    const jitter = (1 - t) * r * 0.04;
+    const jitter = (1 - t) * r * 0.06;
     ctx.translate((Math.random() - 0.5) * jitter, (Math.random() - 0.5) * jitter);
-    ctx.globalAlpha = 0.5 + t * 0.5;
-    drawLogoCore(r);
+    ctx.globalAlpha = 0.4 + t * 0.6;
+    drawLaughingMan(0, 0, r);
   }
 
   ctx.restore();
-}
-
-function drawLogoCore(r) {
-  // drawLaughingManの内部ロジックを再利用（angleも引き継ぐ）
-  drawLaughingMan(0, 0, r);
 }
 
 async function loop() {
@@ -390,7 +380,7 @@ async function loop() {
             drawLaughingMan(cx, cy, r);
           } else {
             // 出現エフェクト
-            state.progress = Math.min(1, state.progress + 0.04);
+            state.progress = Math.min(1, state.progress + 0.015);
             if (state.progress >= 1) {
               drawLaughingMan(cx, cy, r);
             } else {
