@@ -320,6 +320,55 @@ async function loop() {
   }
 
   angle += 0.008;
+
+  // スキャンエフェクト
+  drawScanEffect();
+}
+
+// ── スキャンエフェクト ──
+let scanY = 0;
+let glitchTimer = 0;
+
+function drawScanEffect() {
+  const W = canvas.width;
+  const H = canvas.height;
+
+  // 常時: スキャンライン（細かい横縞）
+  for (let y = 0; y < H; y += 3) {
+    ctx.fillStyle = 'rgba(0,0,0,0.08)';
+    ctx.fillRect(0, y, W, 1);
+  }
+
+  // 移動するスキャンバー
+  scanY = (scanY + 2.5) % H;
+  const grad = ctx.createLinearGradient(0, scanY - 30, 0, scanY + 30);
+  grad.addColorStop(0,   'rgba(0,229,204,0)');
+  grad.addColorStop(0.5, 'rgba(0,229,204,0.06)');
+  grad.addColorStop(1,   'rgba(0,229,204,0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, scanY - 30, W, 60);
+
+  // たまに強いグリッチノイズ
+  glitchTimer++;
+  if (glitchTimer > 180 && Math.random() > 0.97) {
+    glitchTimer = 0;
+    const numLines = 3 + Math.floor(Math.random() * 6);
+    for (let i = 0; i < numLines; i++) {
+      const gy = Math.random() * H;
+      const gh = 1 + Math.random() * 4;
+      const gx = Math.random() * W * 0.3;
+      ctx.fillStyle = `rgba(0,229,204,${0.3 + Math.random() * 0.5})`;
+      ctx.fillRect(gx, gy, W * (0.4 + Math.random() * 0.6), gh);
+    }
+    // たまに画面全体が一瞬ずれる
+    if (Math.random() > 0.5) {
+      const shift = (Math.random() - 0.5) * 8;
+      ctx.save();
+      ctx.globalAlpha = 0.15;
+      ctx.drawImage(canvas, shift, 0);
+      ctx.restore();
+    }
+  }
 }
 
 // ── ボタン ──
