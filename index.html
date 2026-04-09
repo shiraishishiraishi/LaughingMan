@@ -134,54 +134,81 @@ let currentFacingMode = 'user';
 let stream = null;
 let animFrameId = null;
 
-// ── Laughing Man ロゴをCanvasで描画 ──
+// ── Laughing Man ロゴ（SAC原作風）──
 function drawLaughingMan(cx, cy, r) {
   ctx.save();
   ctx.translate(cx, cy);
 
-  // 外側の円（青緑）
+  const C = '#00e5cc';
+  const W = '#ffffff';
+  const BG = '#002a22';
+
+  // 背景円
   ctx.beginPath();
   ctx.arc(0, 0, r, 0, Math.PI * 2);
-  ctx.fillStyle = '#00b894';
+  ctx.fillStyle = BG;
   ctx.fill();
 
-  // スマイル顔（白）
-  const fr = r * 0.52;
+  // 二重リング
   ctx.beginPath();
-  ctx.arc(0, 0, fr, 0, Math.PI * 2);
-  ctx.fillStyle = '#fff';
-  ctx.fill();
-
-  // 目（左右）
-  const eyeY = -fr * 0.25;
-  const eyeR = fr * 0.12;
-  ctx.fillStyle = '#00b894';
+  ctx.arc(0, 0, r * 0.89, 0, Math.PI * 2);
+  ctx.strokeStyle = C;
+  ctx.lineWidth = r * 0.028;
+  ctx.stroke();
   ctx.beginPath();
-  ctx.arc(-fr * 0.28, eyeY, eyeR, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.arc(fr * 0.28, eyeY, eyeR, 0, Math.PI * 2);
-  ctx.fill();
-
-  // 笑顔の口
-  ctx.strokeStyle = '#00b894';
-  ctx.lineWidth = fr * 0.1;
-  ctx.lineCap = 'round';
-  ctx.beginPath();
-  ctx.arc(0, fr * 0.05, fr * 0.35, 0.2, Math.PI - 0.2);
+  ctx.arc(0, 0, r * 0.78, 0, Math.PI * 2);
+  ctx.strokeStyle = C;
+  ctx.lineWidth = r * 0.013;
   ctx.stroke();
 
-  // 回転するテキストリング
+  // 横顔シルエット
+  const s = r * 0.52;
+  ctx.fillStyle = C;
+  ctx.beginPath();
+  ctx.moveTo(s * 0.05, -s * 0.88);
+  ctx.bezierCurveTo(s * 0.3, -s * 0.92, s * 0.65, -s * 0.65, s * 0.62, -s * 0.1);
+  ctx.bezierCurveTo(s * 0.58, s * 0.2, s * 0.38, s * 0.38, s * 0.1, s * 0.44);
+  ctx.lineTo(-s * 0.12, s * 0.44);
+  ctx.lineTo(-s * 0.12, s * 0.24);
+  ctx.bezierCurveTo(-s * 0.28, s * 0.18, -s * 0.45, s * 0.02, -s * 0.48, -s * 0.12);
+  ctx.bezierCurveTo(-s * 0.52, -s * 0.22, -s * 0.42, -s * 0.32, -s * 0.32, -s * 0.28);
+  ctx.bezierCurveTo(-s * 0.25, -s * 0.52, -s * 0.15, -s * 0.78, s * 0.05, -s * 0.88);
+  ctx.closePath();
+  ctx.fill();
+
+  // 帽子本体
+  ctx.beginPath();
+  ctx.moveTo(-s * 0.32, -s * 0.82);
+  ctx.bezierCurveTo(-s * 0.28, -s * 1.12, s * 0.22, -s * 1.15, s * 0.28, -s * 0.9);
+  ctx.lineTo(s * 0.05, -s * 0.88);
+  ctx.bezierCurveTo(-s * 0.02, -s * 0.78, -s * 0.18, -s * 0.76, -s * 0.32, -s * 0.82);
+  ctx.closePath();
+  ctx.fill();
+
+  // つば
+  ctx.beginPath();
+  ctx.moveTo(s * 0.28, -s * 0.9);
+  ctx.bezierCurveTo(s * 0.55, -s * 0.88, s * 0.68, -s * 0.78, s * 0.58, -s * 0.72);
+  ctx.bezierCurveTo(s * 0.48, -s * 0.66, s * 0.22, -s * 0.7, s * 0.1, -s * 0.76);
+  ctx.closePath();
+  ctx.fill();
+
+  // 目（背景色でくり抜き）
+  ctx.fillStyle = BG;
+  ctx.beginPath();
+  ctx.ellipse(-s * 0.2, -s * 0.38, s * 0.075, s * 0.05, 0.15, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 回転テキストリング
   ctx.rotate(angle);
-  const text = 'I thought what I\'d do was, I\'d pretend I was one of those deaf-mutes ';
+  const text = "I thought what I'd do was, I'd pretend I was one of those deaf-mutes. ";
   const chars = text.split('');
-  const ringR = r * 0.82;
-  const fontSize = Math.max(9, r * 0.11);
+  const ringR = r * 0.835;
+  const fontSize = Math.max(8, r * 0.1);
   ctx.font = `bold ${fontSize}px 'Courier New', monospace`;
-  ctx.fillStyle = '#fff';
+  ctx.fillStyle = W;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-
   chars.forEach((char, i) => {
     const a = (i / chars.length) * Math.PI * 2 - Math.PI / 2;
     ctx.save();
@@ -241,8 +268,84 @@ async function openCamera(facingMode) {
 // ── メインループ ──
 let lastVideoTime = -1;
 
+// グリッチエフェクト管理
+// appearProgress: 0=未検出, 0〜1=出現中, 1=完全表示
+const faceStates = new Map(); // faceId → { progress, lastSeen }
+let frameCount = 0;
+
+function drawGlitchEffect(cx, cy, r, progress) {
+  ctx.save();
+  ctx.translate(cx, cy);
+
+  const C = '#00e5cc';
+
+  if (progress < 0.3) {
+    // フェーズ1: バラバラなノイズブロック
+    const blocks = Math.floor(20 * progress / 0.3);
+    for (let i = 0; i < blocks; i++) {
+      const bx = (Math.random() - 0.5) * r * 2;
+      const by = (Math.random() - 0.5) * r * 2;
+      const bw = Math.random() * r * 0.4 + r * 0.05;
+      const bh = Math.random() * r * 0.08 + r * 0.02;
+      ctx.fillStyle = `rgba(0,229,204,${Math.random() * 0.8})`;
+      ctx.fillRect(bx, by, bw, bh);
+    }
+    // 外周の円がちらつく
+    if (Math.random() > 0.4) {
+      ctx.beginPath();
+      ctx.arc(0, 0, r * (0.7 + Math.random() * 0.3), 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(0,229,204,${Math.random() * 0.6})`;
+      ctx.lineWidth = r * 0.03;
+      ctx.stroke();
+    }
+  } else if (progress < 0.65) {
+    // フェーズ2: ロゴの断片が見え始める＋ノイズ
+    const t = (progress - 0.3) / 0.35;
+    ctx.globalAlpha = t * 0.7;
+    ctx.restore();
+    ctx.save();
+    ctx.translate(cx, cy);
+
+    // ズレたロゴを複数枚重ねてグリッチ感
+    const offsets = [
+      { dx: (Math.random() - 0.5) * r * 0.15, dy: 0, a: 0.4 },
+      { dx: (Math.random() - 0.5) * r * 0.1,  dy: (Math.random()-0.5)*r*0.1, a: 0.3 },
+    ];
+    offsets.forEach(o => {
+      ctx.save();
+      ctx.translate(o.dx, o.dy);
+      ctx.globalAlpha = o.a * t;
+      drawLogoCore(r);
+      ctx.restore();
+    });
+
+    // 水平ノイズライン
+    for (let i = 0; i < 6; i++) {
+      const ly = (Math.random() - 0.5) * r * 2;
+      const lw = Math.random() * r * 1.5;
+      ctx.fillStyle = `rgba(0,229,204,${Math.random() * 0.5})`;
+      ctx.fillRect(-lw / 2, ly, lw, r * 0.03);
+    }
+  } else {
+    // フェーズ3: ほぼ完成、最後の揺れ
+    const t = (progress - 0.65) / 0.35;
+    const jitter = (1 - t) * r * 0.04;
+    ctx.translate((Math.random() - 0.5) * jitter, (Math.random() - 0.5) * jitter);
+    ctx.globalAlpha = 0.5 + t * 0.5;
+    drawLogoCore(r);
+  }
+
+  ctx.restore();
+}
+
+function drawLogoCore(r) {
+  // drawLaughingManの内部ロジックを再利用（angleも引き継ぐ）
+  drawLaughingMan(0, 0, r);
+}
+
 async function loop() {
   animFrameId = requestAnimationFrame(loop);
+  frameCount++;
 
   if (video.readyState < 2) return;
 
@@ -262,9 +365,8 @@ async function loop() {
     try {
       const result = faceDetector.detectForVideo(video, performance.now());
       if (overlayEnabled && result.detections.length > 0) {
-        result.detections.forEach(det => {
+        result.detections.forEach((det, i) => {
           const bb = det.boundingBox;
-          // フロントカメラは左右反転
           let x = currentFacingMode === 'user'
             ? canvas.width - bb.originX - bb.width
             : bb.originX;
@@ -274,12 +376,37 @@ async function loop() {
           const cx = x + w / 2;
           const cy = y + h / 2;
           const r = Math.max(w, h) * 0.65;
-          drawLaughingMan(cx, cy, r);
+
+          // グリッチ進捗管理
+          const key = i;
+          if (!faceStates.has(key)) {
+            faceStates.set(key, { progress: 0 });
+          }
+          const state = faceStates.get(key);
+          state.lastFrame = frameCount;
+
+          if (state.progress >= 1) {
+            // 完全表示
+            drawLaughingMan(cx, cy, r);
+          } else {
+            // 出現エフェクト
+            state.progress = Math.min(1, state.progress + 0.04);
+            if (state.progress >= 1) {
+              drawLaughingMan(cx, cy, r);
+            } else {
+              drawGlitchEffect(cx, cy, r, state.progress);
+            }
+          }
+        });
+      } else {
+        // 顔が消えたらリセット
+        faceStates.forEach((state, key) => {
+          if (frameCount - (state.lastFrame || 0) > 5) {
+            faceStates.delete(key);
+          }
         });
       }
     } catch(e) {}
-  } else if (overlayEnabled && faceDetector && result?.detections?.length === 0) {
-    // 顔なし
   }
 
   angle += 0.008;
