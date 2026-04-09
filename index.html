@@ -17,91 +17,61 @@
     color: #00ffcc;
     overflow: hidden;
   }
-
-  #container {
-    position: relative;
-    width: 100%;
-    max-width: 480px;
-  }
-
+  #container { position: relative; width: 100%; max-width: 480px; }
   video { display: none; }
-
-  canvas {
-    width: 100%;
-    height: auto;
-    display: block;
-    border-radius: 8px;
-  }
-
+  canvas { width: 100%; height: auto; display: block; border-radius: 8px; }
   #ui {
-    position: absolute;
-    bottom: 12px;
-    left: 0; right: 0;
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    z-index: 10;
+    position: absolute; bottom: 12px; left: 0; right: 0;
+    display: flex; justify-content: center; gap: 10px; z-index: 10;
   }
-
   .btn {
-    background: rgba(0,0,0,0.7);
-    color: #00ffcc;
-    border: 1px solid #00ffcc44;
-    border-radius: 6px;
-    padding: 8px 16px;
-    font-family: 'Courier New', monospace;
-    font-size: 13px;
-    cursor: pointer;
-    letter-spacing: 0.05em;
-    transition: background 0.2s;
+    background: rgba(0,0,0,0.7); color: #00ffcc;
+    border: 1px solid #00ffcc44; border-radius: 6px;
+    padding: 8px 16px; font-family: 'Courier New', monospace;
+    font-size: 13px; cursor: pointer; letter-spacing: 0.05em;
   }
   .btn:active { background: rgba(0,255,204,0.15); }
-
-  #status {
-    text-align: center;
-    font-size: 12px;
-    color: #00ffcc88;
-    padding: 8px;
-    letter-spacing: 0.1em;
-  }
-
-  #start-screen {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 20px;
-    padding: 40px 20px;
-  }
-
-  .title {
-    font-size: 22px;
-    letter-spacing: 0.2em;
-    color: #00ffcc;
-    text-shadow: 0 0 20px #00ffcc66;
-  }
-
-  .subtitle {
-    font-size: 12px;
-    color: #00ffcc55;
-    letter-spacing: 0.15em;
-  }
-
+  #status { text-align: center; font-size: 12px; color: #00ffcc88; padding: 8px; letter-spacing: 0.1em; }
+  #start-screen { display: flex; flex-direction: column; align-items: center; gap: 20px; padding: 40px 20px; }
+  .title { font-size: 22px; letter-spacing: 0.2em; color: #00ffcc; }
+  .subtitle { font-size: 12px; color: #00ffcc55; letter-spacing: 0.15em; }
   .start-btn {
-    background: transparent;
-    color: #00ffcc;
-    border: 1px solid #00ffcc;
-    border-radius: 8px;
-    padding: 14px 32px;
-    font-family: 'Courier New', monospace;
-    font-size: 15px;
-    cursor: pointer;
-    letter-spacing: 0.1em;
-    transition: all 0.2s;
+    background: transparent; color: #00ffcc; border: 1px solid #00ffcc;
+    border-radius: 8px; padding: 14px 32px; font-family: 'Courier New', monospace;
+    font-size: 15px; cursor: pointer; letter-spacing: 0.1em;
   }
-  .start-btn:active { background: rgba(0,255,204,0.1); }
 </style>
 </head>
 <body>
+
+<!-- 笑い男ロゴSVG（非表示、画像として使用） -->
+<svg id="logo-static" xmlns="http://www.w3.org/2000/svg" viewBox="-100 -100 200 200" style="display:none">
+  <!-- 背景円 -->
+  <circle cx="0" cy="0" r="98" fill="#001a14"/>
+  <!-- 顔（白い円） -->
+  <circle cx="0" cy="0" r="62" fill="#e8f5f0"/>
+  <!-- 帽子 -->
+  <ellipse cx="-8" cy="-52" rx="48" ry="16" fill="#1a1a1a"/>
+  <rect x="-42" y="-68" width="72" height="22" rx="8" fill="#1a1a1a"/>
+  <!-- つば（帽子の右側） -->
+  <ellipse cx="28" cy="-52" rx="22" ry="8" fill="#111"/>
+  <!-- 目 -->
+  <ellipse cx="-12" cy="-22" rx="9" ry="7" fill="#1a1a1a"/>
+  <ellipse cx="16" cy="-22" rx="9" ry="7" fill="#1a1a1a"/>
+  <!-- 白目ハイライト -->
+  <ellipse cx="-10" cy="-24" rx="3" ry="2.5" fill="#fff"/>
+  <ellipse cx="18" cy="-24" rx="3" ry="2.5" fill="#fff"/>
+  <!-- 鼻 -->
+  <path d="M4 -10 Q8 2 4 8" stroke="#555" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <!-- 口（笑顔） -->
+  <path d="M-22 18 Q0 38 22 18" stroke="#1a1a1a" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <!-- 外リング（青緑） -->
+  <circle cx="0" cy="0" r="88" fill="none" stroke="#00e5cc" stroke-width="3"/>
+  <circle cx="0" cy="0" r="78" fill="none" stroke="#00e5cc" stroke-width="1.5"/>
+</svg>
+
+<!-- 回転テキスト用オフスクリーンCanvas（非表示） -->
+<canvas id="logo-canvas" style="display:none"></canvas>
 
 <div id="start-screen">
   <div class="title">LAUGHING MAN</div>
@@ -114,7 +84,7 @@
   <video id="video" autoplay playsinline muted></video>
   <canvas id="canvas"></canvas>
   <div id="ui">
-    <button class="btn" onclick="toggleOverlay()">オーバーレイ ON/OFF</button>
+    <button class="btn" onclick="toggleOverlay()">ON/OFF</button>
     <button class="btn" onclick="switchCamera()">カメラ切替</button>
   </div>
 </div>
@@ -122,102 +92,139 @@
 <script type="module">
 import { FaceDetector, FilesetResolver } from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs';
 
-const video = document.getElementById('video');
+const video  = document.getElementById('video');
 const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
+const ctx    = canvas.getContext('2d');
 const status = document.getElementById('status');
 
-let faceDetector = null;
-let overlayEnabled = true;
-let angle = 0;
-let currentFacingMode = 'user';
-let stream = null;
-let animFrameId = null;
+// ── ロゴ画像の準備 ──
+// SVGをBase64化してImageとして読み込む
+const svgEl  = document.getElementById('logo-static');
+const svgStr = new XMLSerializer().serializeToString(svgEl);
+const svgB64 = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgStr)));
+const logoImg = new Image();
+logoImg.src = svgB64;
 
-// ── Laughing Man ロゴ（SAC原作風）──
+// オフスクリーンCanvas（回転テキスト付きロゴを合成）
+const offCanvas = document.getElementById('logo-canvas');
+const offCtx    = offCanvas.getContext('2d');
+const LOGO_SIZE = 400;
+offCanvas.width  = LOGO_SIZE;
+offCanvas.height = LOGO_SIZE;
+
+let faceDetector   = null;
+let overlayEnabled = true;
+let angle          = 0;
+let currentFacingMode = 'user';
+let stream         = null;
+let frameCount     = 0;
+const faceStates   = new Map();
+let lastVideoTime  = -1;
+
+// ── ロゴをオフスクリーンに描画（テキストリングを回転） ──
+function buildLogoFrame() {
+  const s = LOGO_SIZE;
+  const cx = s / 2, cy = s / 2, r = s / 2 - 4;
+
+  offCtx.clearRect(0, 0, s, s);
+
+  // SVG画像を描画
+  if (logoImg.complete) {
+    offCtx.drawImage(logoImg, 0, 0, s, s);
+  }
+
+  // 回転テキストリング（SVGの外側に重ねる）
+  offCtx.save();
+  offCtx.translate(cx, cy);
+  offCtx.rotate(angle);
+
+  const text  = "I thought what I'd do was, I'd pretend I was one of those deaf-mutes. ";
+  const chars = text.split('');
+  const ringR = r * 0.9;
+  const fs    = Math.max(10, s * 0.048);
+  offCtx.font          = `bold ${fs}px 'Courier New', monospace`;
+  offCtx.fillStyle     = '#ffffff';
+  offCtx.textAlign     = 'center';
+  offCtx.textBaseline  = 'middle';
+
+  chars.forEach((char, i) => {
+    const a = (i / chars.length) * Math.PI * 2 - Math.PI / 2;
+    offCtx.save();
+    offCtx.rotate(a);
+    offCtx.translate(0, -ringR);
+    offCtx.rotate(Math.PI / 2);
+    offCtx.fillText(char, 0, 0);
+    offCtx.restore();
+  });
+
+  offCtx.restore();
+}
+
+// ── メインCanvasにロゴを描画 ──
 function drawLaughingMan(cx, cy, r) {
+  buildLogoFrame();
+  const d = r * 2;
+  ctx.drawImage(offCanvas, cx - r, cy - r, d, d);
+}
+
+// ── グリッチエフェクト ──
+function drawGlitchEffect(cx, cy, r, progress) {
   ctx.save();
   ctx.translate(cx, cy);
 
-  const C = '#00e5cc';
-  const W = '#ffffff';
-  const BG = '#002a22';
+  if (progress < 0.3) {
+    // フェーズ1: ノイズブロック＋円ちらつき
+    const blocks = Math.floor(28 * (progress / 0.3));
+    for (let i = 0; i < blocks; i++) {
+      const bx = (Math.random() - 0.5) * r * 2.2;
+      const by = (Math.random() - 0.5) * r * 2.2;
+      const bw = Math.random() * r * 0.55 + r * 0.05;
+      const bh = Math.random() * r * 0.1  + r * 0.02;
+      ctx.fillStyle = `rgba(0,229,204,${Math.random() * 0.9})`;
+      ctx.fillRect(bx, by, bw, bh);
+    }
+    if (Math.random() > 0.3) {
+      ctx.beginPath();
+      ctx.arc(0, 0, r * (0.55 + Math.random() * 0.45), 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(0,229,204,${Math.random() * 0.7})`;
+      ctx.lineWidth   = r * 0.04;
+      ctx.stroke();
+    }
 
-  // 背景円
-  ctx.beginPath();
-  ctx.arc(0, 0, r, 0, Math.PI * 2);
-  ctx.fillStyle = BG;
-  ctx.fill();
+  } else if (progress < 0.65) {
+    // フェーズ2: ズレたロゴ断片＋水平ノイズ
+    const t = (progress - 0.3) / 0.35;
+    buildLogoFrame();
+    const d = r * 2;
 
-  // 二重リング
-  ctx.beginPath();
-  ctx.arc(0, 0, r * 0.89, 0, Math.PI * 2);
-  ctx.strokeStyle = C;
-  ctx.lineWidth = r * 0.028;
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.arc(0, 0, r * 0.78, 0, Math.PI * 2);
-  ctx.strokeStyle = C;
-  ctx.lineWidth = r * 0.013;
-  ctx.stroke();
+    // ズレたロゴを2枚
+    [[0.18, 0.35 * t], [0.12, 0.22 * t]].forEach(([jit, alpha]) => {
+      const dx = (Math.random() - 0.5) * r * jit;
+      const dy = (Math.random() - 0.5) * r * jit;
+      ctx.globalAlpha = alpha;
+      ctx.drawImage(offCanvas, -r + dx, -r + dy, d, d);
+    });
+    ctx.globalAlpha = 1;
 
-  // 横顔シルエット
-  const s = r * 0.52;
-  ctx.fillStyle = C;
-  ctx.beginPath();
-  ctx.moveTo(s * 0.05, -s * 0.88);
-  ctx.bezierCurveTo(s * 0.3, -s * 0.92, s * 0.65, -s * 0.65, s * 0.62, -s * 0.1);
-  ctx.bezierCurveTo(s * 0.58, s * 0.2, s * 0.38, s * 0.38, s * 0.1, s * 0.44);
-  ctx.lineTo(-s * 0.12, s * 0.44);
-  ctx.lineTo(-s * 0.12, s * 0.24);
-  ctx.bezierCurveTo(-s * 0.28, s * 0.18, -s * 0.45, s * 0.02, -s * 0.48, -s * 0.12);
-  ctx.bezierCurveTo(-s * 0.52, -s * 0.22, -s * 0.42, -s * 0.32, -s * 0.32, -s * 0.28);
-  ctx.bezierCurveTo(-s * 0.25, -s * 0.52, -s * 0.15, -s * 0.78, s * 0.05, -s * 0.88);
-  ctx.closePath();
-  ctx.fill();
+    // 水平ノイズライン
+    for (let i = 0; i < 9; i++) {
+      const ly = (Math.random() - 0.5) * r * 2.2;
+      const lw = Math.random() * r * 1.8;
+      ctx.fillStyle = `rgba(0,229,204,${Math.random() * 0.55})`;
+      ctx.fillRect(-lw / 2, ly, lw, r * 0.038);
+    }
 
-  // 帽子本体
-  ctx.beginPath();
-  ctx.moveTo(-s * 0.32, -s * 0.82);
-  ctx.bezierCurveTo(-s * 0.28, -s * 1.12, s * 0.22, -s * 1.15, s * 0.28, -s * 0.9);
-  ctx.lineTo(s * 0.05, -s * 0.88);
-  ctx.bezierCurveTo(-s * 0.02, -s * 0.78, -s * 0.18, -s * 0.76, -s * 0.32, -s * 0.82);
-  ctx.closePath();
-  ctx.fill();
-
-  // つば
-  ctx.beginPath();
-  ctx.moveTo(s * 0.28, -s * 0.9);
-  ctx.bezierCurveTo(s * 0.55, -s * 0.88, s * 0.68, -s * 0.78, s * 0.58, -s * 0.72);
-  ctx.bezierCurveTo(s * 0.48, -s * 0.66, s * 0.22, -s * 0.7, s * 0.1, -s * 0.76);
-  ctx.closePath();
-  ctx.fill();
-
-  // 目（背景色でくり抜き）
-  ctx.fillStyle = BG;
-  ctx.beginPath();
-  ctx.ellipse(-s * 0.2, -s * 0.38, s * 0.075, s * 0.05, 0.15, 0, Math.PI * 2);
-  ctx.fill();
-
-  // 回転テキストリング
-  ctx.rotate(angle);
-  const text = "I thought what I'd do was, I'd pretend I was one of those deaf-mutes. ";
-  const chars = text.split('');
-  const ringR = r * 0.835;
-  const fontSize = Math.max(8, r * 0.1);
-  ctx.font = `bold ${fontSize}px 'Courier New', monospace`;
-  ctx.fillStyle = W;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  chars.forEach((char, i) => {
-    const a = (i / chars.length) * Math.PI * 2 - Math.PI / 2;
-    ctx.save();
-    ctx.rotate(a);
-    ctx.translate(0, -ringR);
-    ctx.rotate(Math.PI / 2);
-    ctx.fillText(char, 0, 0);
-    ctx.restore();
-  });
+  } else {
+    // フェーズ3: 揺れながら固まる
+    const t      = (progress - 0.65) / 0.35;
+    const jitter = (1 - t) * r * 0.07;
+    const dx     = (Math.random() - 0.5) * jitter;
+    const dy     = (Math.random() - 0.5) * jitter;
+    ctx.globalAlpha = 0.35 + t * 0.65;
+    buildLogoFrame();
+    ctx.drawImage(offCanvas, -r + dx, -r + dy, r * 2, r * 2);
+    ctx.globalAlpha = 1;
+  }
 
   ctx.restore();
 }
@@ -242,8 +249,7 @@ async function initDetector() {
 // ── カメラ起動 ──
 window.startCamera = async function() {
   document.getElementById('start-screen').style.display = 'none';
-  document.getElementById('container').style.display = 'block';
-
+  document.getElementById('container').style.display    = 'block';
   await openCamera(currentFacingMode);
   await initDetector();
   requestAnimationFrame(loop);
@@ -258,7 +264,7 @@ async function openCamera(facingMode) {
     });
     video.srcObject = stream;
     await new Promise(r => video.onloadedmetadata = r);
-    canvas.width = video.videoWidth;
+    canvas.width  = video.videoWidth;
     canvas.height = video.videoHeight;
   } catch(e) {
     status.textContent = 'カメラの許可が必要です';
@@ -266,80 +272,11 @@ async function openCamera(facingMode) {
 }
 
 // ── メインループ ──
-let lastVideoTime = -1;
-
-// グリッチエフェクト管理
-// appearProgress: 0=未検出, 0〜1=出現中, 1=完全表示
-const faceStates = new Map(); // faceId → { progress, lastSeen }
-let frameCount = 0;
-
-function drawGlitchEffect(cx, cy, r, progress) {
-  ctx.save();
-  ctx.translate(cx, cy);
-
-  const C = '#00e5cc';
-
-  if (progress < 0.3) {
-    // フェーズ1: バラバラなノイズブロック＋円のちらつき
-    const blocks = Math.floor(25 * progress / 0.3);
-    for (let i = 0; i < blocks; i++) {
-      const bx = (Math.random() - 0.5) * r * 2;
-      const by = (Math.random() - 0.5) * r * 2;
-      const bw = Math.random() * r * 0.5 + r * 0.05;
-      const bh = Math.random() * r * 0.1 + r * 0.02;
-      ctx.fillStyle = `rgba(0,229,204,${Math.random() * 0.9})`;
-      ctx.fillRect(bx, by, bw, bh);
-    }
-    if (Math.random() > 0.3) {
-      ctx.beginPath();
-      ctx.arc(0, 0, r * (0.6 + Math.random() * 0.4), 0, Math.PI * 2);
-      ctx.strokeStyle = `rgba(0,229,204,${Math.random() * 0.7})`;
-      ctx.lineWidth = r * 0.035;
-      ctx.stroke();
-    }
-  } else if (progress < 0.65) {
-    // フェーズ2: ズレたロゴ断片＋水平ノイズライン
-    const t = (progress - 0.3) / 0.35;
-
-    // ズレたロゴを2枚
-    const offsets = [
-      { dx: (Math.random() - 0.5) * r * 0.18, dy: (Math.random()-0.5)*r*0.08, a: 0.35 * t },
-      { dx: (Math.random() - 0.5) * r * 0.12, dy: (Math.random()-0.5)*r*0.12, a: 0.25 * t },
-    ];
-    offsets.forEach(o => {
-      ctx.save();
-      ctx.translate(o.dx, o.dy);
-      ctx.globalAlpha = o.a;
-      drawLaughingMan(0, 0, r);
-      ctx.restore();
-    });
-
-    // 水平ノイズライン
-    for (let i = 0; i < 8; i++) {
-      const ly = (Math.random() - 0.5) * r * 2;
-      const lw = Math.random() * r * 1.8;
-      ctx.fillStyle = `rgba(0,229,204,${Math.random() * 0.6})`;
-      ctx.fillRect(-lw / 2, ly, lw, r * 0.035);
-    }
-  } else {
-    // フェーズ3: 揺れながら固まる
-    const t = (progress - 0.65) / 0.35;
-    const jitter = (1 - t) * r * 0.06;
-    ctx.translate((Math.random() - 0.5) * jitter, (Math.random() - 0.5) * jitter);
-    ctx.globalAlpha = 0.4 + t * 0.6;
-    drawLaughingMan(0, 0, r);
-  }
-
-  ctx.restore();
-}
-
 async function loop() {
-  animFrameId = requestAnimationFrame(loop);
+  requestAnimationFrame(loop);
   frameCount++;
-
   if (video.readyState < 2) return;
 
-  // 映像をcanvasに描画
   ctx.save();
   if (currentFacingMode === 'user') {
     ctx.scale(-1, 1);
@@ -349,7 +286,6 @@ async function loop() {
   }
   ctx.restore();
 
-  // 顔検出
   if (faceDetector && video.currentTime !== lastVideoTime) {
     lastVideoTime = video.currentTime;
     try {
@@ -360,40 +296,24 @@ async function loop() {
           let x = currentFacingMode === 'user'
             ? canvas.width - bb.originX - bb.width
             : bb.originX;
-          const y = bb.originY;
-          const w = bb.width;
-          const h = bb.height;
-          const cx = x + w / 2;
-          const cy = y + h / 2;
-          const r = Math.max(w, h) * 0.65;
+          const cx = x + bb.width / 2;
+          const cy = bb.originY + bb.height / 2;
+          const r  = Math.max(bb.width, bb.height) * 0.65;
 
-          // グリッチ進捗管理
-          const key = i;
-          if (!faceStates.has(key)) {
-            faceStates.set(key, { progress: 0 });
-          }
-          const state = faceStates.get(key);
+          if (!faceStates.has(i)) faceStates.set(i, { progress: 0, lastFrame: frameCount });
+          const state = faceStates.get(i);
           state.lastFrame = frameCount;
 
           if (state.progress >= 1) {
-            // 完全表示
             drawLaughingMan(cx, cy, r);
           } else {
-            // 出現エフェクト
             state.progress = Math.min(1, state.progress + 0.015);
-            if (state.progress >= 1) {
-              drawLaughingMan(cx, cy, r);
-            } else {
-              drawGlitchEffect(cx, cy, r, state.progress);
-            }
+            drawGlitchEffect(cx, cy, r, state.progress);
           }
         });
       } else {
-        // 顔が消えたらリセット
         faceStates.forEach((state, key) => {
-          if (frameCount - (state.lastFrame || 0) > 5) {
-            faceStates.delete(key);
-          }
+          if (frameCount - state.lastFrame > 5) faceStates.delete(key);
         });
       }
     } catch(e) {}
@@ -403,11 +323,8 @@ async function loop() {
 }
 
 // ── ボタン ──
-window.toggleOverlay = function() {
-  overlayEnabled = !overlayEnabled;
-};
-
-window.switchCamera = async function() {
+window.toggleOverlay = function() { overlayEnabled = !overlayEnabled; };
+window.switchCamera  = async function() {
   currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
   await openCamera(currentFacingMode);
 };
